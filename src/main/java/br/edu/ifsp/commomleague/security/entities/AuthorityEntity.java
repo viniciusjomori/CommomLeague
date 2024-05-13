@@ -5,7 +5,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import br.edu.ifsp.commomleague.app.BaseEntity;
 import br.edu.ifsp.commomleague.security.enums.AuthorityName;
@@ -35,8 +34,6 @@ public class AuthorityEntity extends BaseEntity implements GrantedAuthority {
     @Enumerated(EnumType.STRING)
     @Column(unique = true, nullable = false)
     public AuthorityName authorityName;
-
-    SimpleGrantedAuthority a;
 
     @ManyToMany(mappedBy = "authorities", fetch = FetchType.LAZY)
     public Set<RoleEntity> roles;
