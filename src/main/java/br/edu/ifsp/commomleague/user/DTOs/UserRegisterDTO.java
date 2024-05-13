@@ -31,5 +31,11 @@ public record UserRegisterDTO(
     @NotNull
     LocalDate birthday
 ) {
+
+    public String cpf() {
+        return cpf
+            .replace("-", "")
+            .replace(".", "");
+    }
     
 }

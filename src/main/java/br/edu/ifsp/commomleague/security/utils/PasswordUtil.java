@@ -7,8 +7,6 @@ import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Component;
 
-import br.edu.ifsp.commomleague.security.exceptions.WeakPasswordException;
-
 @Component
 public class PasswordUtil extends BCryptPasswordEncoder {
 
@@ -17,9 +15,6 @@ public class PasswordUtil extends BCryptPasswordEncoder {
 
     @Override
     public String encode(CharSequence rawPassword) {
-        if(!isStrongPassword(rawPassword))
-            throw new WeakPasswordException();
-        
         return super.encode(rawPassword);
     }
     
