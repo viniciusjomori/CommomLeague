@@ -6,6 +6,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 
+import br.edu.ifsp.commomleague.app.exceptions.BadRequestException;
 import br.edu.ifsp.commomleague.security.entities.RoleEntity;
 import br.edu.ifsp.commomleague.security.enums.RoleName;
 import br.edu.ifsp.commomleague.security.services.RoleService;
@@ -14,13 +15,11 @@ import br.edu.ifsp.commomleague.user.DTOs.UserRegisterDTO;
 import br.edu.ifsp.commomleague.user.entities.UserEntity;
 import br.edu.ifsp.commomleague.user.enums.UserStatus;
 import br.edu.ifsp.commomleague.user.exceptions.UserNotFoundException;
-import br.edu.ifsp.commomleague.user.exceptions.UserRegisterException;
+import br.edu.ifsp.commomleague.user.strategy.UserValidationStrategy;
 
-import java.time.LocalDate;
-import java.time.Period;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
 public class UserService {
@@ -36,6 +35,9 @@ public class UserService {
 
     @Autowired
     private UserMapper userMapper;
+
+    @Autowired
+    private List<UserValidationStrategy> validators;
 
     public UserEntity getCurrentUser() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -57,7 +59,7 @@ public class UserService {
     }
     
     public UserEntity registerUser(UserRegisterDTO dto) {
-        isValidUser(dto);
+        validateUser(dto);
 
         RoleEntity role = roleService.findByRoleName(RoleName.ROLE_FREE_USER);
         String password = passwordUtil.encode(dto.password());
@@ -65,32 +67,20 @@ public class UserService {
         UserEntity entity = userMapper.toEntity(dto);
         
         entity.setRole(role);
+        entity.setStatus(UserStatus.ACTIVE);        
         entity.setPassword(password);
-        entity.setStatus(UserStatus.ACTIVE);
-        
         return userRepository.save(entity);
     }
 
-    public void isValidUser(UserRegisterDTO dto) {
-        List<String> errors = new ArrayList<>();
+    public void validateUser(UserRegisterDTO user) {
+        List<String> errors = validators.stream()
+            .filter(v -> !v.validate(user))
+            .map(UserValidationStrategy::getErrorMessage)
+            .collect(Collectors.toList());
 
-        if(userRepository.existsByCpf(dto.cpf()))
-            errors.add("CPF already registred");
-        
-        if(userRepository.existsByEmail(dto.email()))
-            errors.add("Email already registred");
-        
-        if(userRepository.existsByNickname(dto.nickname()))
-            errors.add("Nickname already registred");
-        
-        if(!passwordUtil.isStrongPassword(dto.password()))
-            errors.add("Weak password");
-        
-        Period period = Period.between(dto.birthday(), LocalDate.now());   
-        if(period.getYears() <= 18)
-            errors.add("You must be 18 years old or older");
-        
-        if(!errors.isEmpty())
-            throw new UserRegisterException(errors);
+        if (!errors.isEmpty()) {
+            throw new BadRequestException(errors);
+        }
     }
+
 }
